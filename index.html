@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BLP SEO Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+  :root{
+    --ink:#14181d;--ink-2:#222933;--blp:#1a9bd7;--blp-deep:#0f6f9e;--blp-tint:#eaf6fc;
+    --paper:#fff;--bg:#f4f7f9;--line:#e3e8ec;--muted:#67727e;--text:#1e252c;
+    --green:#2e9e6b;--green-tint:#e7f5ee;--red:#cf5b52;--red-tint:#fbecea;--amber:#c2871f;--amber-tint:#fbf2df;
+    --shadow:0 1px 2px rgba(20,24,29,.04),0 6px 20px rgba(20,24,29,.06);--radius:12px;
+  }
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px 80px}
+
+  /* Login gate */
+  .gate{position:fixed;inset:0;background:var(--ink);display:grid;place-items:center;z-index:100;padding:24px}
+  .gate-card{background:var(--paper);border-radius:16px;max-width:420px;width:100%;padding:34px 32px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .gate-card .shield{margin:0 auto 14px;display:block}
+  .gate-card h1{font-family:'Archivo',sans-serif;font-size:21px;margin:0 0 4px;color:var(--ink)}
+  .gate-card p{font-size:13px;color:var(--muted);margin:0 0 22px}
+  .gate-card button{background:var(--blp);color:#fff;border:none;border-radius:10px;padding:12px 22px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;width:100%}
+  .gate-card button:hover{background:var(--blp-deep)}
+  .gate-err{margin-top:16px;font-size:12px;color:var(--red);background:var(--red-tint);border-radius:8px;padding:10px 12px;text-align:left;display:none}
+  .spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--blp);border-radius:50%;animation:spin .8s linear infinite;margin:8px auto 0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  header.topbar{position:sticky;top:0;z-index:20;background:var(--ink);border-bottom:3px solid var(--blp)}
+  .topbar-inner{max-width:980px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;margin-right:auto}
+  .brand .name{font-family:'Archivo',sans-serif;font-weight:800;color:#fff;font-size:15px;line-height:1.05}
+  .brand .sub{color:#9fb3c0;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .monthnav{display:flex;align-items:center;gap:4px;background:#1f2630;border:1px solid #2c343f;border-radius:10px;padding:3px}
+  .monthnav button{background:transparent;border:none;color:#cfe0ea;cursor:pointer;width:30px;height:30px;border-radius:7px;font-size:17px;display:grid;place-items:center}
+  .monthnav button:hover{background:#2c343f;color:#fff}
+  .monthnav .label{color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:13.5px;min-width:118px;text-align:center}
+  .ghostbtn{background:#1f2630;border:1px solid #2c343f;color:#cfe0ea;cursor:pointer;padding:7px 12px;border-radius:9px;font-size:12.5px;font-weight:600;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+  .ghostbtn:hover{background:#2c343f;color:#fff}
+
+  .scorecard{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-top:22px;padding:18px 22px 20px}
+  .sc-head h1{font-family:'Archivo',sans-serif;font-size:18px;margin:0 0 2px;color:var(--ink);font-weight:800}
+  .sc-head .vendortag{font-size:12px;color:var(--muted);margin-bottom:16px}
+  .sc-head .vendortag b{color:var(--blp-deep)}
+  .sc-body{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+  .rings{display:flex;gap:18px;flex:none}
+  .ringwrap{text-align:center}
+  .ring{position:relative;width:104px;height:104px;margin:0 auto}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .ring .pct b{font-family:'Archivo',sans-serif;font-size:25px;font-weight:800;color:var(--ink);line-height:1}
+  .ringcap{margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+  .ringcap small{display:block;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-size:10.5px;margin-top:1px}
+  .minirow{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:240px}
+  .mini{flex:1;min-width:118px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+  .mini .v{font-family:'Archivo',sans-serif;font-weight:800;font-size:17px;color:var(--ink)}
+  .mini .v.warn{color:var(--amber)}.mini .v.ok{color:var(--green)}
+  .mini .k{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+
+  section.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-top:18px;overflow:hidden}
+  .card-head{padding:15px 20px 13px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+  .card-head .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blp-deep)}
+  .card-head h2{font-family:'Archivo',sans-serif;font-size:17px;margin:2px 0 0;color:var(--ink);font-weight:800}
+  .card-head p{margin:4px 0 0;font-size:12.5px;color:var(--muted);max-width:600px}
+  .card-head .badge{margin-left:auto;flex:none;font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:var(--ink-2);background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:5px 12px;white-space:nowrap}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:1px;background:var(--line)}
+  .kpi{background:var(--paper);padding:13px 15px}
+  .kpi .lab{font-size:11.5px;color:var(--muted);font-weight:600;min-height:30px;line-height:1.25}
+  .kpi .row{display:flex;align-items:baseline;gap:8px;margin-top:5px}
+  .kpi input{width:84px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-family:'Archivo',sans-serif;font-weight:800;font-size:17px;color:var(--ink)}
+  .kpi input:focus{outline:none;border-color:var(--blp);box-shadow:0 0 0 3px var(--blp-tint)}
+  .kpi input:disabled{background:#fbfcfd;color:var(--ink)}
+  .kpi .unit{font-size:11px;color:var(--muted);font-weight:600}
+  .kpi .delta{font-size:11.5px;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:3px}
+  .kpi .delta.up{color:var(--green)}.kpi .delta.down{color:var(--red)}.kpi .delta.flat{color:var(--muted)}
+  .kpi .base{font-size:10.5px;color:#9aa4ad;margin-top:2px}
+
+  .grouplabel{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:14px 20px 5px;background:#fbfcfd}
+  .item{display:flex;align-items:center;gap:13px;padding:11px 20px;border-top:1px solid #eef1f4}
+  .item:first-of-type{border-top:none}.item:hover{background:#fafcfd}
+  .cb{flex:none;width:21px;height:21px;border:2px solid #c5ccd3;border-radius:6px;cursor:pointer;display:grid;place-items:center;background:#fff;transition:all .12s}
+  .cb:hover{border-color:var(--blp)}.cb.on{background:var(--blp);border-color:var(--blp)}
+  .cb svg{opacity:0;transform:scale(.6);transition:all .12s}.cb.on svg{opacity:1;transform:scale(1)}
+  .item label{flex:1;cursor:pointer;font-size:13.5px;color:var(--text);font-weight:500}
+  .item.done label{color:#97a1aa;text-decoration:line-through;text-decoration-color:#cdd5db}
+  .target{flex:none;font-size:11px;font-weight:700;color:var(--blp-deep);background:var(--blp-tint);border-radius:6px;padding:2px 8px;white-space:nowrap}
+  .stepper{flex:none;display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .stepper button{border:none;background:#f4f7f9;color:var(--ink-2);width:26px;height:28px;cursor:pointer;font-size:15px;font-weight:700;line-height:1}
+  .stepper button:hover{background:var(--blp-tint);color:var(--blp-deep)}
+  .stepper .count{width:46px;text-align:center;font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;color:var(--ink)}
+  .stepper .count small{color:var(--muted);font-weight:600}
+
+  .savebar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:14px;padding:0 4px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}.dot.saving{background:var(--amber)}.dot.err{background:var(--red)}
+  .notice{background:var(--amber-tint);border:1px solid #ecdcb4;color:#7a5a12;font-size:12.5px;padding:12px 16px;border-radius:9px;margin:14px 0}
+  .hidden{display:none!important}
+  @media (max-width:560px){.sc-body{justify-content:center}.card-head{flex-wrap:wrap}.card-head .badge{margin-left:0;order:3}.brand .sub{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <svg class="shield" width="40" height="46" viewBox="0 0 30 34" fill="none">
+      <path d="M15 1.5 28 6.2v9.4c0 8.4-5.3 14-13 16.9C7.3 29.6 2 24 2 15.6V6.2L15 1.5Z" fill="#1a9bd7" stroke="#0f6f9e" stroke-width="1.4"/>
+      <text x="15" y="22" font-family="Archivo,sans-serif" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">bp</text>
+    </svg>
+    <h1>BLP SEO Dashboard</h1>
+    <p>Sign in with your Bob Lilly Promotions Microsoft account.</p>
+    <button id="loginBtn">Sign in with Microsoft</button>
+    <div class="spinner hidden" id="gateSpin"></div>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg width="30" height="34" viewBox="0 0 30 34" fill="none" aria-hidden="true">
+        <path d="M15 1.5 28 6.2v9.4c0 8.4-5.3 14-13 16.9C7.3 29.6 2 24 2 15.6V6.2L15 1.5Z" fill="#1a9bd7" stroke="#0f6f9e" stroke-width="1.4"/>
+        <text x="15" y="22" font-family="Archivo,sans-serif" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">bp</text>
+      </svg>
+      <div><div class="name">BOB LILLY PROMOTIONS</div><div class="sub">SEO Dashboard</div></div>
+    </div>
+    <div class="monthnav">
+      <button id="prevM" aria-label="Previous month">‹</button>
+      <div class="label" id="monthLabel">—</div>
+      <button id="nextM" aria-label="Next month">›</button>
+    </div>
+    <button class="ghostbtn" id="refreshBtn" title="Reload from SharePoint">⟳ Refresh</button>
+    <button class="ghostbtn" id="logoutBtn">Sign out</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="topNotice"></div>
+
+  <div class="scorecard">
+    <div class="sc-head">
+      <h1>Monthly SEO scorecard</h1>
+      <div class="vendortag">Paid retainer: <b>Webloft Silver — $1,200/mo</b> · left ring = vendor delivery · right ring = your total SEO program, whoever does the work</div>
+    </div>
+    <div class="sc-body">
+      <div class="rings">
+        <div class="ringwrap">
+          <div class="ring"><svg width="104" height="104"><circle cx="52" cy="52" r="45" fill="none" stroke="#eef1f4" stroke-width="10"/>
+          <circle id="ringVendor" cx="52" cy="52" r="45" fill="none" stroke="#1a9bd7" stroke-width="10" stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="282.7"/></svg>
+          <div class="pct"><b id="pctVendor">0%</b></div></div>
+          <div class="ringcap">Vendor delivered<small>Silver items only</small></div>
+        </div>
+        <div class="ringwrap">
+          <div class="ring"><svg width="104" height="104"><circle cx="52" cy="52" r="45" fill="none" stroke="#eef1f4" stroke-width="10"/>
+          <circle id="ringTotal" cx="52" cy="52" r="45" fill="none" stroke="#0f6f9e" stroke-width="10" stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="282.7"/></svg>
+          <div class="pct"><b id="pctTotal">0%</b></div></div>
+          <div class="ringcap">Total SEO output<small>Vendor + in-house</small></div>
+        </div>
+      </div>
+      <div class="minirow">
+        <div class="mini"><div class="v" id="m_silver">0 / 0</div><div class="k">Silver items confirmed</div></div>
+        <div class="mini"><div class="v" id="m_inhouse">0 / 0</div><div class="k">In-house confirmed</div></div>
+        <div class="mini"><div class="v warn" id="m_owed">0</div><div class="k">Vendor owed this month</div></div>
+        <div class="mini"><div class="v" id="m_cost">$—</div><div class="k">Cost / item delivered</div></div>
+        <div class="mini"><div class="v warn" id="m_setup">0 / 0</div><div class="k">Setup unverified</div></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <div><div class="eyebrow">Outcomes — is the effort moving anything?</div><h2>Monthly results</h2>
+      <p>Log these once a month from your reports (GA4, Search Console, SEMrush, GBP, HubSpot). Arrows compare to last month, so trend is the read.</p></div>
+      <div class="badge" id="kpiBadge">Apr 2026 = baseline</div>
+    </div>
+    <div id="kpiNotice"></div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </section>
+
+  <div id="sections"></div>
+
+  <div class="savebar"><span class="dot" id="saveDot"></span><span id="saveText">Connected to SharePoint</span></div>
+</div>
+</div>
+
+<script>
+/* =================== CONFIG =================== */
+const CONFIG = {
+  clientId: "75306184-ba27-4d47-9ecc-44672968e27c",          // reuses your existing BLP app registration
+  tenantId: "2b321c65-8aa1-41cd-a56d-f5eef2552b18",
+  // FINALIZE THIS: the site where your checklist list lives (paste the URL from your browser address bar)
+  siteUrl: "https://boblillypromo.sharepoint.com",
+  checklistList: "BLP_SEO_Checklist_SharePoint_Seed",
+  outcomesList: "BLP SEO Outcomes",                            // optional second list (KPI history) — added in Phase B
+  scopes: ["User.Read", "Sites.ReadWrite.All"]
+};
+const GRAPH = "https://graph.microsoft.com/v1.0";
+const RETAINER = 1200;
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+/* KPI catalog — displayName MUST match the Outcomes list column names */
+const KPIS=[
+ {id:"OrganicSessions",lab:"Organic sessions (GA4)",unit:"/mo",dec:0,lowerBetter:false,base:267},
+ {id:"Keywords",lab:"Ranking keywords",unit:"total",dec:0,lowerBetter:false,base:18},
+ {id:"Impressions",lab:"Search impressions (GSC)",unit:"/mo",dec:0,lowerBetter:false,base:1620},
+ {id:"Clicks",lab:"Search clicks (GSC)",unit:"/mo",dec:0,lowerBetter:false,base:129},
+ {id:"CTR",lab:"Average CTR",unit:"%",dec:1,lowerBetter:false,base:8.0},
+ {id:"AvgPosition",lab:"Average position",unit:"rank",dec:1,lowerBetter:true,base:9.6},
+ {id:"Authority",lab:"Authority Score",unit:"/100",dec:0,lowerBetter:false,base:17},
+ {id:"RefDomains",lab:"Referring domains",unit:"total",dec:0,lowerBetter:false,base:324},
+ {id:"GBPInteractions",lab:"GBP interactions",unit:"/mo",dec:0,lowerBetter:false,base:81},
+ {id:"OrganicLeads",lab:"Organic leads (HubSpot)",unit:"/mo",dec:0,lowerBetter:false,base:null},
+];
+
+/* =================== AUTH =================== */
+const msalApp = new msal.PublicClientApplication({
+  auth:{ clientId:CONFIG.clientId, authority:`https://login.microsoftonline.com/${CONFIG.tenantId}`,
+         redirectUri: window.location.origin + window.location.pathname },
+  cache:{ cacheLocation:"sessionStorage" }
+});
+let account=null;
+async function getToken(){
+  try{ const r=await msalApp.acquireTokenSilent({scopes:CONFIG.scopes,account}); return r.accessToken; }
+  catch(e){ await msalApp.acquireTokenRedirect({scopes:CONFIG.scopes}); }
+}
+async function graph(url,opts={}){
+  const token=await getToken();
+  const headers=Object.assign({
+    "Authorization":"Bearer "+token,
+    "Content-Type":"application/json",
+    "Prefer":"HonorNonIndexedQueriesWarningMayFailRandomly"
+  }, opts.headers||{});
+  const res=await fetch(url,{...opts,headers});
+  if(!res.ok){ const t=await res.text(); throw new Error(res.status+" "+t.slice(0,300)); }
+  return res.status===204?null:res.json();
+}
+
+/* =================== STATE =================== */
+let cur=new Date(),curY=cur.getFullYear(),curM=cur.getMonth();
+let siteId=null;
+let cl={listId:null,map:{},items:[]};          // checklist
+let oc={ready:false,listId:null,map:{},items:[]}; // outcomes
+function ym(y,m){return y+"-"+String(m+1).padStart(2,"0");}
+function prevYM(y,m){m--;if(m<0){m=11;y--;}return ym(y,m);}
+function setSave(state,msg){const d=document.getElementById("saveDot"),t=document.getElementById("saveText");d.className="dot"+(state==="saving"?" saving":state==="err"?" err":"");t.textContent=msg||"Connected to SharePoint";}
+
+/* field accessor via discovered internal names */
+function fv(item,display){const internal=cl.map[display];return item.fields?item.fields[internal]:undefined;}
+function ocv(item,display){const internal=oc.map[display];return item&&item.fields?item.fields[internal]:undefined;}
+
+/* =================== GRAPH LOADERS =================== */
+async function resolveSite(){
+  const u=new URL(CONFIG.siteUrl);const host=u.hostname;let path=u.pathname.replace(/\/+$/,"");
+  const url = (path && path!=="") ? `${GRAPH}/sites/${host}:${path}:` : `${GRAPH}/sites/${host}`;
+  const r=await graph(url); return r.id;
+}
+async function resolveList(name){
+  const r=await graph(`${GRAPH}/sites/${siteId}/lists?$filter=displayName eq '${encodeURIComponent(name).replace(/'/g,"''")}'`);
+  return (r.value&&r.value[0])?r.value[0].id:null;
+}
+async function loadColumnMap(listId){
+  const r=await graph(`${GRAPH}/sites/${siteId}/lists/${listId}/columns?$select=name,displayName`);
+  const map={}; r.value.forEach(c=>{ if(c.displayName) map[c.displayName]=c.name; });
+  return map;
+}
+async function loadItems(listId){
+  let url=`${GRAPH}/sites/${siteId}/lists/${listId}/items?expand=fields&$top=500`;
+  let out=[];
+  while(url){ const r=await graph(url); out=out.concat(r.value); url=r["@odata.nextLink"]||null; }
+  return out;
+}
+async function patchFields(listId,itemId,obj){
+  return graph(`${GRAPH}/sites/${siteId}/lists/${listId}/items/${itemId}/fields`,{method:"PATCH",body:JSON.stringify(obj)});
+}
+async function createItem(listId,fieldsObj){
+  return graph(`${GRAPH}/sites/${siteId}/lists/${listId}/items`,{method:"POST",body:JSON.stringify({fields:fieldsObj})});
+}
+
+/* =================== CHECKLIST WRITES =================== */
+async function toggleConfirmed(item){
+  const internal=cl.map["Confirmed"]; const newVal=!item.fields[internal];
+  setSave("saving","Saving…");
+  try{ await patchFields(cl.listId,item.id,{[internal]:newVal}); item.fields[internal]=newVal; setSave("ok"); render(); }
+  catch(e){ setSave("err","Save failed — check connection"); console.error(e); }
+}
+async function setVendorReported(item,val){
+  const internal=cl.map["VendorReported"];
+  setSave("saving","Saving…");
+  try{ await patchFields(cl.listId,item.id,{[internal]:val}); item.fields[internal]=val; setSave("ok"); render(); }
+  catch(e){ setSave("err","Save failed"); console.error(e); }
+}
+
+/* =================== OUTCOMES WRITES =================== */
+async function findOrCreateMonthRow(monthStr){
+  let row=oc.items.find(it=>ocv(it,"Month")===monthStr);
+  if(row) return row;
+  const monthInternal=oc.map["Month"];
+  const created=await createItem(oc.listId,{[monthInternal]:monthStr});
+  // refetch the created item with fields
+  const full=await graph(`${GRAPH}/sites/${siteId}/lists/${oc.listId}/items/${created.id}?expand=fields`);
+  oc.items.push(full); return full;
+}
+async function setKpi(metricId,val){
+  if(!oc.ready)return;
+  const monthStr=ym(curY,curM); const internal=oc.map[metricId];
+  setSave("saving","Saving…");
+  try{ const row=await findOrCreateMonthRow(monthStr); await patchFields(oc.listId,row.id,{[internal]:val}); row.fields[internal]=val; setSave("ok"); renderKpiDeltas(); }
+  catch(e){ setSave("err","Save failed"); console.error(e); }
+}
+
+/* =================== RENDER: CHECKLIST =================== */
+const SECTION_ORDER=["Silver Monthly","BLP In-House","Silver Setup"];
+const SECTION_META={
+  "Silver Monthly":{eyebrow:"What you're paying for",blurb:"Every countable item from Webloft's Silver column. Tick Confirmed only when you've verified it actually happened. Feeds the Vendor Delivered ring."},
+  "BLP In-House":{eyebrow:"Beyond Silver — your strategy",blurb:"Work that advances BLP's defensible assets and keeps the program moving if you bring SEO in-house. Counts toward Total SEO Output."},
+  "Silver Setup":{eyebrow:"Verify once",blurb:"One-time foundational items. Not counted in either ring — just confirm each is genuinely live."}
+};
+const GROUP_ORDER=["Content & On-Page","Off-Page","AEO","Reporting & Meetings","Recurring","Foundations"];
+
+function monthlyItems(){const m=ym(curY,curM);return cl.items.filter(it=>fv(it,"Month")===m);}
+function setupItems(){return cl.items.filter(it=>fv(it,"Section")==="Silver Setup");}
+function isConfirmed(it){return fv(it,"Confirmed")===true;}
+
+function buildSection(sectionName,items){
+  const meta=SECTION_META[sectionName]||{eyebrow:"",blurb:""};
+  let total=items.length, done=items.filter(isConfirmed).length;
+  const el=document.createElement("section");el.className="card";
+  el.innerHTML=`<div class="card-head"><div><div class="eyebrow">${meta.eyebrow}</div><h2>${sectionName}</h2><p>${meta.blurb}</p></div><div class="badge">${done} / ${total} confirmed</div></div>`;
+  // group
+  const groups={};
+  items.forEach(it=>{const g=fv(it,"Group")||"Other";(groups[g]=groups[g]||[]).push(it);});
+  const gkeys=Object.keys(groups).sort((a,b)=>{let ia=GROUP_ORDER.indexOf(a),ib=GROUP_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+  const multi=gkeys.length>1;
+  gkeys.forEach(gk=>{
+    if(multi){const gl=document.createElement("div");gl.className="grouplabel";gl.textContent=gk;el.appendChild(gl);}
+    groups[gk].forEach(it=>{
+      const dn=isConfirmed(it);const owed=Number(fv(it,"Owed")||0);const rep=Number(fv(it,"VendorReported")||0);
+      const row=document.createElement("div");row.className="item"+(dn?" done":"");
+      const cb=document.createElement("div");cb.className="cb"+(dn?" on":"");cb.setAttribute("role","checkbox");cb.setAttribute("aria-checked",dn);cb.setAttribute("tabindex","0");
+      cb.innerHTML='<svg width="13" height="13" viewBox="0 0 13 13"><path d="M2 7l3 3 6-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      cb.addEventListener("click",()=>toggleConfirmed(it));
+      cb.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();toggleConfirmed(it);}});
+      row.appendChild(cb);
+      const lab=document.createElement("label");lab.textContent=fv(it,"Task")||"(untitled)";lab.addEventListener("click",()=>toggleConfirmed(it));row.appendChild(lab);
+      if(owed>0){
+        const tg=document.createElement("span");tg.className="target";tg.textContent="owed "+owed;row.appendChild(tg);
+        const sp=document.createElement("div");sp.className="stepper";
+        const mn=document.createElement("button");mn.textContent="−";
+        const cnt=document.createElement("div");cnt.className="count";cnt.innerHTML=rep+'<small>/'+owed+'</small>';
+        const pl=document.createElement("button");pl.textContent="+";
+        mn.addEventListener("click",()=>setVendorReported(it,Math.max(0,rep-1)));
+        pl.addEventListener("click",()=>setVendorReported(it,Math.min(owed,rep+1)));
+        sp.appendChild(mn);sp.appendChild(cnt);sp.appendChild(pl);row.appendChild(sp);
+      }
+      el.appendChild(row);
+    });
+  });
+  return el;
+}
+
+function computeStats(){
+  const mi=monthlyItems();
+  const silver=mi.filter(it=>fv(it,"Section")==="Silver Monthly");
+  const inhouse=mi.filter(it=>fv(it,"Section")==="BLP In-House");
+  const setup=setupItems();
+  return{
+    sT:silver.length,sD:silver.filter(isConfirmed).length,
+    hT:inhouse.length,hD:inhouse.filter(isConfirmed).length,
+    oT:setup.length,oD:setup.filter(isConfirmed).length
+  };
+}
+function setRing(elId,pctId,pct,isTotal){
+  const circ=2*Math.PI*45,fg=document.getElementById(elId);
+  fg.style.strokeDashoffset=circ*(1-pct/100);
+  fg.style.stroke=pct>=80?"var(--green)":pct>=50?(isTotal?"var(--blp-deep)":"var(--blp)"):"var(--amber)";
+  document.getElementById(pctId).textContent=pct+"%";
+}
+
+/* =================== RENDER: KPI =================== */
+function fmt(v,dec){if(v===null||v===undefined||v==="")return "—";return dec?Number(v).toFixed(dec):String(Math.round(v));}
+function kpiVal(monthStr,id){ if(!oc.ready)return undefined; const row=oc.items.find(it=>ocv(it,"Month")===monthStr); return row?ocv(row,id):undefined; }
+function renderKpi(){
+  const host=document.getElementById("kpiGrid");host.innerHTML="";
+  const notice=document.getElementById("kpiNotice");
+  const isBase=ym(curY,curM)==="2026-04";
+  document.getElementById("kpiBadge").textContent=isBase?"This is your baseline month":"vs. "+MONTHS[(curM+11)%12].slice(0,3);
+  if(!oc.ready){notice.innerHTML='<div class="notice"><b>Outcomes list not connected yet.</b> The tiles below show your April baseline. Create the "BLP SEO Outcomes" list (Phase B) and these become live, editable, and save to SharePoint.</div>';}
+  else{notice.innerHTML="";}
+  const monthStr=ym(curY,curM),prevStr=prevYM(curY,curM);
+  KPIS.forEach(k=>{
+    const cv=oc.ready?kpiVal(monthStr,k.id):(isBase?k.base:undefined);
+    const pv=oc.ready?kpiVal(prevStr,k.id):undefined;
+    let deltaHtml='<div class="delta flat">— no prior value</div>';
+    if(cv!=null&&cv!==""&&pv!=null&&pv!==""){
+      const diff=Number(cv)-Number(pv),good=k.lowerBetter?diff<0:diff>0,cls=diff===0?"flat":(good?"up":"down"),arr=diff===0?"→":(diff>0?"▲":"▼");
+      deltaHtml=`<div class="delta ${cls}">${arr} ${fmt(Math.abs(diff),k.dec)} vs last mo</div>`;
+    }
+    const baseHint=k.base!=null?`<div class="base">Apr baseline: ${fmt(k.base,k.dec)}</div>`:`<div class="base">no baseline yet</div>`;
+    const cell=document.createElement("div");cell.className="kpi";
+    cell.innerHTML=`<div class="lab">${k.lab}</div>
+      <div class="row"><input type="number" step="${k.dec?'0.1':'1'}" value="${cv!=null?cv:''}" data-id="${k.id}" ${oc.ready?'':'disabled'} placeholder="—"><span class="unit">${k.unit}</span></div>
+      ${deltaHtml}${baseHint}`;
+    host.appendChild(cell);
+  });
+  if(oc.ready){host.querySelectorAll("input").forEach(inp=>{inp.addEventListener("change",()=>{const v=inp.value;setKpi(inp.dataset.id, v===""?null:Number(v));});});}
+}
+function renderKpiDeltas(){renderKpi();}
+
+/* =================== MAIN RENDER =================== */
+function render(){
+  const host=document.getElementById("sections");host.innerHTML="";
+  const mi=monthlyItems();
+  SECTION_ORDER.forEach(sec=>{
+    let items = sec==="Silver Setup" ? setupItems() : mi.filter(it=>fv(it,"Section")===sec);
+    if(items.length) host.appendChild(buildSection(sec,items));
+  });
+  const s=computeStats();
+  document.getElementById("m_silver").textContent=s.sD+" / "+s.sT;
+  const ih=document.getElementById("m_inhouse");ih.textContent=s.hD+" / "+s.hT;ih.className="v"+(s.hD===s.hT&&s.hT>0?" ok":"");
+  const owed=s.sT-s.sD;const ow=document.getElementById("m_owed");ow.textContent=owed;ow.className="v"+(owed===0&&s.sT>0?" ok":" warn");
+  document.getElementById("m_cost").textContent=s.sD>0?"$"+Math.round(RETAINER/s.sD):"$—";
+  const unv=s.oT-s.oD;const su=document.getElementById("m_setup");su.textContent=unv+" / "+s.oT;su.className="v"+(unv===0&&s.oT>0?" ok":" warn");
+  setRing("ringVendor","pctVendor",s.sT?Math.round(s.sD/s.sT*100):0,false);
+  const tT=s.sT+s.hT,tD=s.sD+s.hD;setRing("ringTotal","pctTotal",tT?Math.round(tD/tT*100):0,true);
+  document.getElementById("monthLabel").textContent=MONTHS[curM]+" "+curY;
+  renderKpi();
+}
+
+/* =================== BOOT =================== */
+async function loadAll(){
+  setSave("saving","Loading from SharePoint…");
+  siteId=await resolveSite();
+  cl.listId=await resolveList(CONFIG.checklistList);
+  if(!cl.listId)throw new Error("Checklist list not found: "+CONFIG.checklistList);
+  cl.map=await loadColumnMap(cl.listId);
+  cl.items=await loadItems(cl.listId);
+  // outcomes (optional)
+  try{
+    oc.listId=await resolveList(CONFIG.outcomesList);
+    if(oc.listId){ oc.map=await loadColumnMap(oc.listId); oc.items=await loadItems(oc.listId); oc.ready=true; }
+  }catch(e){ oc.ready=false; }
+  setSave("ok"); render();
+}
+function wire(){
+  document.getElementById("prevM").addEventListener("click",()=>{curM--;if(curM<0){curM=11;curY--;}render();});
+  document.getElementById("nextM").addEventListener("click",()=>{curM++;if(curM>11){curM=0;curY++;}render();});
+  document.getElementById("refreshBtn").addEventListener("click",async()=>{try{await loadAll();}catch(e){setSave("err","Reload failed");console.error(e);}});
+  document.getElementById("logoutBtn").addEventListener("click",()=>msalApp.logoutRedirect());
+}
+function showApp(){document.getElementById("gate").classList.add("hidden");document.getElementById("app").classList.remove("hidden");}
+function showError(msg){document.getElementById("gateSpin").classList.add("hidden");const e=document.getElementById("gateErr");e.style.display="block";e.textContent=msg;}
+
+document.getElementById("loginBtn").addEventListener("click",()=>{
+  document.getElementById("gateSpin").classList.remove("hidden");
+  msalApp.loginRedirect({scopes:CONFIG.scopes});
+});
+
+(async function init(){
+  try{
+    const resp=await msalApp.handleRedirectPromise();
+    if(resp&&resp.account)account=resp.account;
+    else{const accts=msalApp.getAllAccounts();if(accts.length)account=accts[0];}
+    if(!account)return; // stay on gate
+    showApp();wire();
+    await loadAll();
+  }catch(e){ console.error(e); showError("Couldn't load: "+e.message); }
+})();
+</script>
+</body>
+</html>
