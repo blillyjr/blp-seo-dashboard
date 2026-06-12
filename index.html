@@ -7,7 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" onerror="window.__msalFailed=true"></script>
+<script>
+if(typeof msal==="undefined"){
+  // primary CDN blocked or slow — load fallback synchronously via document.write
+  document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"><\/scr'+'ipt>');
+}
+</script>
 <style>
   :root{
     --ink:#14181d;--ink-2:#222933;--blp:#1a9bd7;--blp-deep:#0f6f9e;--blp-tint:#eaf6fc;
@@ -221,6 +227,11 @@ const KPIS=[
 ];
 
 /* =================== AUTH =================== */
+if(typeof msal==="undefined"){
+  document.getElementById("gateErr").style.display="block";
+  document.getElementById("gateErr").textContent="Could not load the Microsoft sign-in library (network or extension blocked it). Try an InPrivate window, or disable ad/script blockers for this page, then refresh.";
+  throw new Error("MSAL library not loaded");
+}
 const msalApp = new msal.PublicClientApplication({
   auth:{ clientId:CONFIG.clientId, authority:`https://login.microsoftonline.com/${CONFIG.tenantId}`,
          redirectUri: window.location.origin + window.location.pathname },
